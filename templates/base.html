@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Payment Portal{% endblock %}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <script src="https://js.stripe.com/v3/"></script>
+    
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-brand">Payment Portal</div>
+        <div class="nav-links">
+            {% if 'user_id' in session %}
+                <a href="{{ url_for('dashboard') }}">Dashboard</a>
+                <a href="{{ url_for('logout') }}">Logout</a>
+            {% else %}
+                <a href="{{ url_for('login') }}">Login</a>
+                <a href="{{ url_for('register') }}">Register</a>
+            {% endif %}
+        </div>
+    </nav>
+
+    <div class="container">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ category }}">{{ message }}</div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        {% block content %}{% endblock %}
+    </div>
+
+    <footer class="footer">
+        <p style="text-align: center;">&copy; 2024 Payment Portal. All rights reserved.</p>
+    </footer>
+
+    {% block scripts %}{% endblock %}
+</body>
+</html>

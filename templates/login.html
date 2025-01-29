@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+
+{% block title %}Login - Payment Portal{% endblock %}
+
+{% block content %}
+<div class="auth-container">
+    <div class="auth-card">
+        <h2>Login</h2>
+        <form id="login-form" method="POST">
+            <div class="form-group">
+                <label for="email">Email</label>
+                <input type="email" id="email" name="email" class="form-control" required>
+            </div>
+
+            <div class="form-group">
+                <label for="password">Password</label>
+                <input type="password" id="password" name="password" class="form-control" required>
+            </div>
+
+            <button type="submit" class="btn btn-primary">Login</button>
+            
+            <div class="auth-links">
+                <p>Don't have an account? <a href="{{ url_for('register') }}">Register</a></p>
+            </div>
+        </form>
+    </div>
+</div>
+
+{% block scripts %}
+<script>
+document.getElementById('login-form').addEventListener('submit', async (event) => {
+    event.preventDefault();
+    
+    const formData = new FormData(event.target);
+    try {
+        const response = await fetch('/login', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                email: formData.get('email'),
+                password: formData.get('password')
+            })
+        });
+        
+        const data = await response.json();
+        
+        if (response.ok) {
+            window.location.href = '/dashboard';
+        } else {
+            throw new Error(data.error);
+        }
+    } catch (error) {
+        alert(error.message);
+    }
+});
+</script>
+{% endblock %}
+{% endblock %}

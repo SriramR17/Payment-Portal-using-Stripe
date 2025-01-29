@@ -1,0 +1,73 @@
+{% extends "base.html" %}
+
+{% block title %}Register - Payment Portal{% endblock %}
+
+{% block content %}
+<div class="auth-container">
+    <div class="auth-card">
+        <h2>Register</h2>
+        <form id="register-form" method="POST">
+            <div class="form-group">
+                <label for="email">Email</label>
+                <input type="email" id="email" name="email" class="form-control" required>
+            </div>
+
+            <div class="form-group">
+                <label for="password">Password</label>
+                <input type="password" id="password" name="password" class="form-control" required>
+            </div>
+
+            <div class="form-group">
+                <label for="confirm-password">Confirm Password</label>
+                <input type="password" id="confirm-password" name="confirm-password" class="form-control" required>
+            </div>
+
+            <button type="submit" class="btn btn-primary">Register</button>
+            
+            <div class="auth-links">
+                <p>Already have an account? <a href="{{ url_for('login') }}">Login</a></p>
+            </div>
+        </form>
+    </div>
+</div>
+
+{% block scripts %}
+<script>
+document.getElementById('register-form').addEventListener('submit', async (event) => {
+    event.preventDefault();
+    
+    const password = document.getElementById('password').value;
+    const confirmPassword = document.getElementById('confirm-password').value;
+    
+    if (password !== confirmPassword) {
+        alert("Passwords don't match!");
+        return;
+    }
+    
+    const formData = new FormData(event.target);
+    try {
+        const response = await fetch('/register', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                email: formData.get('email'),
+                password: password
+            })
+        });
+        
+        const data = await response.json();
+        
+        if (response.ok) {
+            window.location.href = '/login';
+        } else {
+            throw new Error(data.error);
+        }
+    } catch (error) {
+        alert(error.message);
+    }
+});
+</script>
+{% endblock %}
+{% endblock %}
