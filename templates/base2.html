@@ -1,0 +1,423 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Payment Portal</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/tailwindcss/2.2.19/tailwind.min.css" rel="stylesheet">
+    <script src="https://js.stripe.com/v3/"></script>
+</head>
+<body class="bg-gray-100">
+    <nav class="bg-white shadow-lg">
+        <div class="max-w-6xl mx-auto px-4">
+            <div class="flex justify-between items-center h-16">
+                <div class="flex items-center space-x-4">
+                    <span class="text-2xl font-semibold text-blue-600">PayPortal</span>
+                </div>
+                <div class="flex items-center space-x-4">
+                    {% if 'user_id' in session %}
+                        <a href="/dashboard" class="text-gray-600">Dashboard</a>
+                        <a href="/logout" class="text-gray-600">Logout</a>
+                    {% else %}
+                        <a href="/login" class="text-gray-600">Login</a>
+                        <a href="/register" class="text-gray-600">Register</a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <main class="max-w-6xl mx-auto py-8 px-4">
+        {% if 'user_id' in session %}
+            <!-- Payment Methods Section -->
+            <section class="mb-8">
+                <h2 class="text-xl font-semibold mb-4">Payment Methods</h2>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div class="bg-white p-4 rounded-lg shadow hover:shadow-md transition-shadow">
+                        <div class="flex items-center space-x-3">
+                            <div class="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
+                                <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"></path>
+                                </svg>
+                            </div>
+                            <div>
+                                <h3 class="font-medium">Credit Card</h3>
+                                <p class="text-sm text-gray-500">Visa, Mastercard, etc.</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="bg-white p-4 rounded-lg shadow hover:shadow-md transition-shadow">
+                        <div class="flex items-center space-x-3">
+                            <div class="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center">
+                                <svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"></path>
+                                </svg>
+                            </div>
+                            <div>
+                                <h3 class="font-medium">Bank Account</h3>
+                                <p class="text-sm text-gray-500">Direct debit</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="bg-white p-4 rounded-lg shadow hover:shadow-md transition-shadow">
+                        <div class="flex items-center space-x-3">
+                            <div class="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center">
+                                <svg class="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                </svg>
+                            </div>
+                            <div>
+                                <h3 class="font-medium">UPI</h3>
+                                <p class="text-sm text-gray-500">Instant transfer</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Bills Section -->
+            <section>
+                <h2 class="text-xl font-semibold mb-4">Bills & Payments</h2>
+                <div class="space-y-4">
+                    <!-- Utility Bill -->
+                    <div class="bg-white p-4 rounded-lg shadow">
+                        <div class="flex justify-between items-center">
+                            <div class="flex items-center space-x-3">
+                                <div class="w-12 h-12 bg-yellow-100 rounded-full flex items-center justify-center">
+                                    <svg class="w-6 h-6 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+                                    </svg>
+                                </div>
+                                <div>
+                                    <h3 class="font-medium">Electricity Bill</h3>
+                                    <p class="text-sm text-gray-500">Due in 5 days</p>
+                                </div>
+                            </div>
+                            <div class="text-right">
+                                <p class="text-lg font-semibold">$85.50</p>
+                                <button onclick="handlePayment(85.50, 'Electricity Bill')" class="mt-2 bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-colors">
+                                    Pay Now
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Internet Bill -->
+                    <div class="bg-white p-4 rounded-lg shadow">
+                        <div class="flex justify-between items-center">
+                            <div class="flex items-center space-x-3">
+                                <div class="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
+                                    <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.111 16.404a5.5 5.5 0 017.778 0M12 20h.01m-7.08-7.071c3.904-3.905 10.236-3.905 14.14 0M1.394 9.393c5.857-5.857 15.355-5.857 21.213 0"></path>
+                                    </svg>
+                                </div>
+                                <div>
+                                    <h3 class="font-medium">Internet Service</h3>
+                                    <p class="text-sm text-gray-500">Due in 12 days</p>
+                                </div>
+                            </div>
+                            <div class="text-right">
+                                <p class="text-lg font-semibold">$59.99</p>
+                                <button onclick="handlePayment(59.99, 'Internet Bill')" class="mt-2 bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-colors">
+                                    Pay Now
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Phone Bill -->
+                    <div class="bg-white p-4 rounded-lg shadow">
+                        <div class="flex justify-between items-center">
+                            <div class="flex items-center space-x-3">
+                                <div class="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center">
+                                    <svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"></path>
+                                    </svg>
+                                </div>
+                                <div>
+                                    <h3 class="font-medium">Phone Bill</h3>
+                                    <p class="text-sm text-gray-500">Due in 8 days</p>
+                                </div>
+                            </div>
+                            <div class="text-right">
+                                <p class="text-lg font-semibold">$45.00</p>
+                                <button onclick="handlePayment(45.00, 'Phone Bill')" class="mt-2 bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-colors">
+                                    Pay Now
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Payment Processing Modal -->
+            <div id="paymentModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
+                <div class="bg-white p-6 rounded-lg max-w-md w-full">
+                    <h3 class="text-xl font-semibold mb-4">Complete Payment</h3>
+                    <div id="card-element" class="mb-4">
+                        <!-- Stripe Card Element -->
+                    </div>
+                    <div id="card-errors" class="text-red-600 mb-4"></div>
+                    <div class="flex justify-end space-x-3">
+                        <button onclick="closePaymentModal()" class="px-4 py-2 border rounded-md hover:bg-gray-100">
+                            Cancel
+                        </button>
+                        <button id="submit-payment" class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">
+                            z
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+        {% else %}
+            <div class="text-center">
+                <h2 class="text-2xl font-semibold mb-4">Welcome to PayPortal</h2>
+                <p class="mb-4">Please login or register to manage your payments.</p>
+                <div class="space-x-4">
+                    <a href="/login" class="inline-block bg-blue-600 text-white px-6 py-2 rounded-md hover:bg-blue-700">Login</a>
+                    <a href="/register" class="inline-block bg-gray-600 text-white px-6 py-2 rounded-md hover:bg-gray-700">Register</a>
+                </div>
+            </div>
+        {% endif %}
+    </main>
+
+    <script>
+        let stripe = Stripe('pk_test_51QlohYJfvPkj146aDeCEkYcV2ldFr21vi1bMNM2G3PM9BNvo3T3PaVL0DcHH13xcvGdd43WtwU02UOfV7Anga7ES0037SvFqRh');
+        let elements = stripe.elements();
+        let card = elements.create('card');
+        let currentPaymentAmount = 0;
+        let currentPaymentDescription = '';
+
+        // Mount card element
+        card.mount('#card-element');
+
+        card.addEventListener('change', function(event) {
+            let displayError = document.getElementById('card-errors');
+            if (event.error) {
+                displayError.textContent = event.error.message;
+            } else {
+                displayError.textContent = '';
+            }
+        });
+
+        function handlePayment(amount, description) {
+            currentPaymentAmount = amount;
+            currentPaymentDescription = description;
+            document.getElementById('paymentModal').classList.remove('hidden');
+        }
+
+        function closePaymentModal() {
+            document.getElementById('paymentModal').classList.add('hidden');
+            card.clear();
+        }
+
+        document.getElementById('submit-payment').addEventListener('click', async function(event) {
+            event.preventDefault();
+            let submitButton = document.getElementById('submit-payment');
+            submitButton.disabled = true;
+
+            try {
+                // Create payment intent
+                const response = await fetch('/create-payment-intent', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        amount: currentPaymentAmount,
+                        description: currentPaymentDescription
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.error) {
+                    throw new Error(data.error);
+                }
+
+                // Confirm card payment
+                const result = await stripe.confirmCardPayment(data.clientSecret, {
+                    payment_method: {
+                        card: card
+                    }
+                });
+
+                if (result.error) {
+                    throw new Error(result.error.message);
+                }
+
+                // Record successful payment
+                await fetch('/payment-success', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        paymentIntentId: result.paymentIntent.id
+                    })
+                });
+
+// Show success message
+alert('Payment successful!');
+closePaymentModal();
+location.reload(); // Refresh to update payment history
+
+} catch (error) {
+const errorElement = document.getElementById('card-errors');
+errorElement.textContent = error.message;
+submitButton.disabled = false;
+}
+});
+
+// Add payment method handling
+function addPaymentMethod(type) {
+switch(type) {
+case 'card':
+    handlePayment(0, 'Add Credit Card');
+    break;
+case 'bank':
+    // Implement bank account addition flow
+    alert('Bank account addition coming soon!');
+    break;
+case 'upi':
+    // Implement UPI addition flow
+    alert('UPI addition coming soon!');
+    break;
+}
+}
+
+// Quick Pay Section
+document.addEventListener('DOMContentLoaded', function() {
+// Initialize tooltips
+const tooltips = document.querySelectorAll('[data-tooltip]');
+tooltips.forEach(tooltip => {
+tooltip.addEventListener('mouseenter', showTooltip);
+tooltip.addEventListener('mouseleave', hideTooltip);
+});
+});
+
+// Add a section for recent transactions
+async function loadRecentTransactions() {
+try {
+const response = await fetch('/payment-history');
+const transactions = await response.json();
+
+const recentTransactionsContainer = document.getElementById('recent-transactions');
+if (transactions.length > 0) {
+    const transactionsList = transactions.slice(0, 5).map(transaction => `
+        <div class="flex justify-between items-center py-3 border-b">
+            <div>
+                <p class="font-medium">${transaction.description || 'Payment'}</p>
+                <p class="text-sm text-gray-500">${new Date(transaction.created_at).toLocaleDateString()}</p>
+            </div>
+            <p class="font-medium ${transaction.status === 'completed' ? 'text-green-600' : 'text-gray-600'}">
+                $${transaction.amount.toFixed(2)}
+            </p>
+        </div>
+    `).join('');
+    
+    recentTransactionsContainer.innerHTML = transactionsList;
+} else {
+    recentTransactionsContainer.innerHTML = '<p class="text-gray-500 text-center py-4">No recent transactions</p>';
+}
+} catch (error) {
+console.error('Error loading transactions:', error);
+}
+}
+
+// Add section for saved payment methods
+function loadSavedPaymentMethods() {
+// This would typically fetch from your backend
+// For now, we'll show a mock implementation
+const savedMethods = document.getElementById('saved-payment-methods');
+savedMethods.innerHTML = `
+<div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+    <div class="bg-white p-4 rounded-lg shadow-sm border">
+        <div class="flex justify-between items-center">
+            <div class="flex items-center space-x-3">
+                <svg class="w-8 h-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"></path>
+                </svg>
+                <div>
+                    <p class="font-medium">•••• 4242</p>
+                    <p class="text-sm text-gray-500">Expires 12/25</p>
+                </div>
+            </div>
+            <button class="text-red-600 hover:text-red-700">Remove</button>
+        </div>
+    </div>
+</div>
+`;
+}
+
+// Add quick actions section
+function addQuickActions() {
+const quickActions = document.getElementById('quick-actions');
+quickActions.innerHTML = `
+<div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+    <button onclick="handleQuickPay('send')" 
+            class="flex flex-col items-center p-4 bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow">
+        <svg class="w-8 h-8 text-blue-600 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path>
+        </svg>
+        <span>Send Money</span>
+    </button>
+    <button onclick="handleQuickPay('request')"
+            class="flex flex-col items-center p-4 bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow">
+        <svg class="w-8 h-8 text-green-600 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path>
+        </svg>
+        <span>Request</span>
+    </button>
+    <button onclick="handleQuickPay('scan')"
+            class="flex flex-col items-center p-4 bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow">
+        <svg class="w-8 h-8 text-purple-600 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z"></path>
+        </svg>
+        <span>Scan QR</span>
+    </button>
+    <button onclick="handleQuickPay('history')"
+            class="flex flex-col items-center p-4 bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow">
+        <svg class="w-8 h-8 text-gray-600 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+        </svg>
+        <span>History</span>
+    </button>
+</div>
+`;
+}
+
+function handleQuickPay(action) {
+switch(action) {
+case 'send':
+    alert('Send money feature coming soon!');
+    break;
+case 'request':
+    alert('Request money feature coming soon!');
+    break;
+case 'scan':
+    alert('QR scan feature coming soon!');
+    break;
+case 'history':
+    window.location.href = '/dashboard';
+    break;
+}
+}
+
+// Load all sections when page loads
+window.addEventListener('load', function() {
+if (document.getElementById('recent-transactions')) {
+loadRecentTransactions();
+}
+if (document.getElementById('saved-payment-methods')) {
+loadSavedPaymentMethods();
+}
+if (document.getElementById('quick-actions')) {
+addQuickActions();
+}
+});
+</script>
+</body>
+</html>

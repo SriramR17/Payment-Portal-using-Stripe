@@ -222,6 +222,8 @@ body {
         grid-template-columns: 1fr;
     }
     
+
+
     .container {
         padding: 1rem;
     }
@@ -229,4 +231,76 @@ body {
     .nav-links {
         display: none;
     }
+}
+
+/* Card Styles */
+.card-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem;
+    border: 1px solid #e5e7eb;
+    border-radius: 0.5rem;
+    margin-bottom: 1rem;
+}
+
+.card-info {
+    flex: 1;
+}
+
+.card-brand {
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.card-number {
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+    margin: 0.25rem 0;
+}
+
+.card-expiry {
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+}
+
+/* Balance Display Styles */
+.balance-info {
+    margin: 1rem 0;
+    padding: 1rem;
+    background-color: var(--background);
+    border-radius: 0.5rem;
+}
+
+.balance-item {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 0.5rem;
+}
+
+.balance-item:last-child {
+    margin-bottom: 0;
+    padding-top: 0.5rem;
+    border-top: 1px solid #e5e7eb;
+}
+
+/* Empty State Styles */
+.empty-state {
+    text-align: center;
+    padding: 2rem;
+    color: var(--text-secondary);
+}
+
+/* Add Card Section Styles */
+.add-card-section {
+    margin-top: 2rem;
+    padding-top: 2rem;
+    border-top: 1px solid #e5e7eb;
+}
+
+/* Pay Now Button Styles */
+.transaction-item .btn {
+    padding: 0.5rem 1rem;
+    font-size: 0.875rem;
+    width: auto;
 }

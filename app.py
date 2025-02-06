@@ -70,7 +70,7 @@ def hash_password(password):
 
 @app.route('/')
 def index():
-    return render_template('base.html')
+    return render_template('base2.html')
 
 @app.route('/register', methods=['GET', 'POST'])
 def register():

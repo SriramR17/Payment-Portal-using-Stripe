@@ -47,7 +47,7 @@ document.getElementById('login-form').addEventListener('submit', async (event) =
         const data = await response.json();
         
         if (response.ok) {
-            window.location.href = '/dashboard';
+            window.location.href = '/';
         } else {
             throw new Error(data.error);
         }
