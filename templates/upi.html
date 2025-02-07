@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>UPI Payment - PayPortal</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/tailwindcss/2.2.19/tailwind.min.css" rel="stylesheet">
+</head>
+<body class="bg-gray-100">
+    <nav class="bg-white shadow-lg">
+        <div class="max-w-6xl mx-auto px-4">
+            <div class="flex justify-between items-center h-16">
+                <div class="flex items-center space-x-4">
+                    <a href="/" class="text-2xl font-semibold text-blue-600">PayPortal</a>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <a href="/" class="text-gray-600">Home</a>
+                    <a href="/dashboard" class="text-gray-600">Dashboard</a>
+                    <a href="/logout" class="text-gray-600">Logout</a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <main class="max-w-6xl mx-auto py-8 px-4">
+        <div class="max-w-md mx-auto">
+            <h2 class="text-2xl font-semibold mb-6">Add UPI ID</h2>
+            
+            <div class="bg-white p-6 rounded-lg shadow">
+                <form id="upi-form" class="space-y-4">
+                    <div class="space-y-2">
+                        <label class="block text-sm font-medium text-gray-700">UPI ID</label>
+                        <input type="text" id="upi-id" class="w-full p-2 border rounded-md" placeholder="username@upi" required>
+                    </div>
+
+                    <button type="submit" class="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 transition-colors">
+                        Verify & Add UPI
+                    </button>
+                </form>
+            </div>
+
+            <div class="mt-6">
+                <h3 class="text-lg font-medium mb-4">Saved UPI IDs</h3>
+                <div id="saved-upi-ids" class="space-y-3">
+                    <!-- Saved UPI IDs will be populated here -->
+                </div>
+            </div>
+        </div>
+    </main>
+</body>
+<script>
+    // credit-card.js
+const stripe = Stripe('pk_test_51QlohYJfvPkj146aDeCEkYcV2ldFr21vi1bMNM2G3PM9BNvo3T3PaVL0DcHH13xcvGdd43WtwU02UOfV7Anga7ES0037SvFqRh');
+const elements = stripe.elements();
+const card = elements.create('card');
+
+// Mount card element
+card.mount('#card-element');
+
+// Handle card errors
+card.addEventListener('change', function(event) {
+    const displayError = document.getElementById('card-errors');
+    if (event.error) {
+        displayError.textContent = event.error.message;
+    } else {
+        displayError.textContent = '';
+    }
+});
+
+// Handle form submission
+document.getElementById('payment-form').addEventListener('submit', async function(event) {
+    event.preventDefault();
+    
+    const cardHolderName = document.getElementById('card-holder-name').value;
+    
+    try {
+        const { setupIntent, error } = await stripe.confirmCardSetup(
+            clientSecret,
+            {
+                payment_method: {
+                    card: card,
+                    billing_details: {
+                        name: cardHolderName
+                    }
+                }
+            }
+        );
+
+        if (error) {
+            const errorElement = document.getElementById('card-errors');
+            errorElement.textContent = error.message;
+        } else {
+            // Send setupIntent.payment_method to your server
+            const response = await fetch('/save-card', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    paymentMethodId: setupIntent.payment_method
+                })
+            });
+
+            if (response.ok) {
+                loadSavedCards();
+                document.getElementById('payment-form').reset();
+                card.clear();
+            }
+        }
+    } catch (error) {
+        console.error('Error:', error);
+    }
+});
+
+// Load saved cards
+async function loadSavedCards() {
+    try {
+        const response = await fetch('/get-saved-cards');
+        const cards = await response.json();
+        
+        const savedCardsContainer = document.getElementById('saved-cards');
+        savedCardsContainer.innerHTML = cards.map(card => `
+            <div class="bg-white p-4 rounded-lg shadow-sm border flex justify-between items-center">
+                <div class="flex items-center space-x-3">
+                    <svg class="w-8 h-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"></path>
+                    </svg>
+                    <div>
+                        <p class="font-medium">•••• ${card.last4}</p>
+                        <p class="text-sm text-gray-500">Expires ${card.expMonth}/${card.expYear}</p>
+                    </div>
+                </div>
+                <button onclick="removeCard('${card.id}')" class="text-red-600 hover:text-red-700">Remove</button>
+            </div>
+        `).join('');
+    } catch (error) {
+        console.error('Error loading saved cards:', error);
+    }
+}
+
+// Bank account handling
+document.getElementById('bank-form').addEventListener('submit', async function(event) {
+    event.preventDefault();
+    
+    const formData = {
+        accountHolderName: document.getElementById('account-holder-name').value,
+        accountNumber: document.getElementById('account-number').value,
+        routingNumber: document.getElementById('routing-number').value
+    };
+
+    try {
+        const response = await fetch('/link-bank-account', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(formData)
+        });
+
+        if (response.ok) {
+            loadLinkedAccounts();
+            document.getElementById('bank-form').reset();
+        }
+    } catch (error) {
+        console.error('Error:', error);
+    }
+});
+
+// UPI handling
+document.getElementById('upi-form').addEventListener('submit', async function(event) {
+    event.preventDefault();
+    
+    const upiId = document.getElementById('upi-id').value;
+
+    try {
+        const response = await fetch('/add-upi', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ upiId })
+        });
+
+        if (response.ok) {
+            loadSavedUpiIds();
+            document.getElementById('upi-form').reset();
+        }
+    } catch (error) {
+        console.error('Error:', error);
+    }
+});
+</script>
+</html>

@@ -13,6 +13,7 @@
         <div class="nav-brand">Payment Portal</div>
         <div class="nav-links">
             {% if 'user_id' in session %}
+                <a href="/">Home</a>
                 <a href="{{ url_for('dashboard') }}">Dashboard</a>
                 <a href="{{ url_for('logout') }}">Logout</a>
             {% else %}

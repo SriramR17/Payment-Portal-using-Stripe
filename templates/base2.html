@@ -16,6 +16,7 @@
                 </div>
                 <div class="flex items-center space-x-4">
                     {% if 'user_id' in session %}
+                    <a href="/" class="text-gray-600">Home</a>
                         <a href="/dashboard" class="text-gray-600">Dashboard</a>
                         <a href="/logout" class="text-gray-600">Logout</a>
                     {% else %}
@@ -33,7 +34,8 @@
             <section class="mb-8">
                 <h2 class="text-xl font-semibold mb-4">Payment Methods</h2>
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div class="bg-white p-4 rounded-lg shadow hover:shadow-md transition-shadow">
+                    <!-- Credit Card -->
+                    <a href="/credit-card-payment" class="bg-white p-4 rounded-lg shadow hover:shadow-md transition-shadow block">
                         <div class="flex items-center space-x-3">
                             <div class="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
                                 <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -45,9 +47,10 @@
                                 <p class="text-sm text-gray-500">Visa, Mastercard, etc.</p>
                             </div>
                         </div>
-                    </div>
-
-                    <div class="bg-white p-4 rounded-lg shadow hover:shadow-md transition-shadow">
+                    </a>
+            
+                    <!-- Bank Account -->
+                    <a href="/bank-account-payment" class="bg-white p-4 rounded-lg shadow hover:shadow-md transition-shadow block">
                         <div class="flex items-center space-x-3">
                             <div class="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center">
                                 <svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -59,9 +62,10 @@
                                 <p class="text-sm text-gray-500">Direct debit</p>
                             </div>
                         </div>
-                    </div>
-
-                    <div class="bg-white p-4 rounded-lg shadow hover:shadow-md transition-shadow">
+                    </a>
+            
+                    <!-- UPI -->
+                    <a href="/upi-payment" class="bg-white p-4 rounded-lg shadow hover:shadow-md transition-shadow block">
                         <div class="flex items-center space-x-3">
                             <div class="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center">
                                 <svg class="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -73,9 +77,10 @@
                                 <p class="text-sm text-gray-500">Instant transfer</p>
                             </div>
                         </div>
-                    </div>
+                    </a>
                 </div>
             </section>
+            
 
             <!-- Bills Section -->
             <section>

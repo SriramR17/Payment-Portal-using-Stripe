@@ -257,6 +257,223 @@ def payment_history():
     
     return jsonify({'error': 'Database connection error'}), 500
 
+
+
+
+@app.route('/credit-card-payment')
+def credit_card_payment():
+    if 'user_id' not in session:
+        return redirect(url_for('login'))
+    return render_template('credit-card.html')
+
+@app.route('/bank-account-payment')
+def bank_account_payment():
+    if 'user_id' not in session:
+        return redirect(url_for('login'))
+    return render_template('bank-account.html')
+
+@app.route('/upi-payment')
+def upi_payment():
+    if 'user_id' not in session:
+        return redirect(url_for('login'))
+    return render_template('upi.html')
+
+@app.route('/save-card', methods=['POST'])
+def save_card():
+    if 'user_id' not in session:
+        return jsonify({'error': 'Not authenticated'}), 401
+        
+    data = request.json
+    payment_method_id = data.get('paymentMethodId')
+    
+    try:
+        # Get user's stripe customer ID from database
+        conn = get_db_connection()
+        if conn:
+            cursor = conn.cursor(dictionary=True)
+            cursor.execute('SELECT stripe_customer_id FROM users WHERE id = %s', (session['user_id'],))
+            user = cursor.fetchone()
+            cursor.close()
+            conn.close()
+            
+            if not user or not user.get('stripe_customer_id'):
+                return jsonify({'error': 'Stripe customer not found'}), 400
+                
+            # Attach the payment method to the customer
+            payment_method = stripe.PaymentMethod.attach(
+                payment_method_id,
+                customer=user['stripe_customer_id'],
+            )
+            
+            return jsonify({'success': True})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 400
+
+@app.route('/get-saved-cards')
+def get_saved_cards():
+    if 'user_id' not in session:
+        return jsonify({'error': 'Not authenticated'}), 401
+        
+    try:
+        conn = get_db_connection()
+        if conn:
+            cursor = conn.cursor(dictionary=True)
+            cursor.execute('SELECT stripe_customer_id FROM users WHERE id = %s', (session['user_id'],))
+            user = cursor.fetchone()
+            cursor.close()
+            conn.close()
+            
+            if not user or not user.get('stripe_customer_id'):
+                return jsonify({'error': 'Stripe customer not found'}), 400
+                
+            payment_methods = stripe.PaymentMethod.list(
+                customer=user['stripe_customer_id'],
+                type="card",
+            )
+            
+            cards = [{
+                'id': pm.id,
+                'last4': pm.card.last4,
+                'expMonth': pm.card.exp_month,
+                'expYear': pm.card.exp_year,
+                'brand': pm.card.brand
+            } for pm in payment_methods.data]
+            
+            return jsonify(cards)
+    except Exception as e:
+        return jsonify({'error': str(e)}), 400
+
+@app.route('/link-bank-account', methods=['POST'])
+def link_bank_account():
+    if 'user_id' not in session:
+        return jsonify({'error': 'Not authenticated'}), 401
+        
+    data = request.json
+    try:
+        conn = get_db_connection()
+        if conn:
+            cursor = conn.cursor(dictionary=True)
+            cursor.execute('SELECT stripe_customer_id FROM users WHERE id = %s', (session['user_id'],))
+            user = cursor.fetchone()
+            cursor.close()
+            conn.close()
+            
+            if not user or not user.get('stripe_customer_id'):
+                return jsonify({'error': 'Stripe customer not found'}), 400
+        
+        # Create a bank account token
+        bank_account = stripe.Token.create(
+            bank_account={
+                'country': 'US',
+                'currency': 'usd',
+                'account_holder_name': data['accountHolderName'],
+                'account_holder_type': 'individual',
+                'routing_number': data['routingNumber'],
+                'account_number': data['accountNumber'],
+            },
+        )
+        
+        # Attach the bank account to the customer
+        customer = stripe.Customer.modify(
+            user['stripe_customer_id'],
+            source=bank_account.id
+        )
+        
+        return jsonify({'success': True})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 400
+
+@app.route('/add-upi', methods=['POST'])
+def add_upi():
+    if 'user_id' not in session:
+        return jsonify({'error': 'Not authenticated'}), 401
+        
+    data = request.json
+    try:
+        upi_id = data.get('upiId')
+        # Here you would typically verify the UPI ID with your payment processor
+        # For now, we'll just return success
+        return jsonify({'success': True})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 400
+
+@app.route('/get-payment-methods')
+def get_payment_methods():
+    if 'user_id' not in session:
+        return jsonify({'error': 'Not authenticated'}), 401
+        
+    try:
+        conn = get_db_connection()
+        if conn:
+            cursor = conn.cursor(dictionary=True)
+            cursor.execute('SELECT stripe_customer_id FROM users WHERE id = %s', (session['user_id'],))
+            user = cursor.fetchone()
+            cursor.close()
+            conn.close()
+            
+            if not user or not user.get('stripe_customer_id'):
+                return jsonify({'error': 'Stripe customer not found'}), 400
+        
+        # Get all payment methods for the customer
+        cards = stripe.PaymentMethod.list(
+            customer=user['stripe_customer_id'],
+            type="card",
+        )
+        
+        # Get bank accounts
+        customer = stripe.Customer.retrieve(
+            user['stripe_customer_id'],
+            expand=['sources']
+        )
+        bank_accounts = [source for source in customer.sources.data if source.object == 'bank_account']
+        
+        return jsonify({
+            'cards': [{
+                'id': pm.id,
+                'last4': pm.card.last4,
+                'expMonth': pm.card.exp_month,
+                'expYear': pm.card.exp_year,
+                'brand': pm.card.brand
+            } for pm in cards.data],
+            'bankAccounts': [{
+                'id': ba.id,
+                'last4': ba.last4,
+                'bankName': ba.bank_name,
+                'accountHolderName': ba.account_holder_name
+            } for ba in bank_accounts]
+        })
+    except Exception as e:
+        return jsonify({'error': str(e)}), 400
+
+@app.route('/remove-payment-method/<method_type>/<method_id>', methods=['DELETE'])
+def remove_payment_method(method_type, method_id):
+    if 'user_id' not in session:
+        return jsonify({'error': 'Not authenticated'}), 401
+        
+    try:
+        conn = get_db_connection()
+        if conn:
+            cursor = conn.cursor(dictionary=True)
+            cursor.execute('SELECT stripe_customer_id FROM users WHERE id = %s', (session['user_id'],))
+            user = cursor.fetchone()
+            cursor.close()
+            conn.close()
+            
+            if not user or not user.get('stripe_customer_id'):
+                return jsonify({'error': 'Stripe customer not found'}), 400
+                
+        if method_type == 'card':
+            stripe.PaymentMethod.detach(method_id)
+        elif method_type == 'bank_account':
+            stripe.Customer.delete_source(
+                user['stripe_customer_id'],
+                method_id
+            )
+            
+        return jsonify({'success': True})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 400
+
 if __name__ == '__main__':
     init_db()
     app.run(debug=True)
