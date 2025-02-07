@@ -72,7 +72,18 @@ This is a web application that provides a seamless payment integration using Str
 ## Project Structure
 
 
-├── templates/ │ ├── base.html # Base template │ ├── register.html # User registration page │ ├── login.html # User login page │ ├── dashboard.html # User dashboard with payment history ├── static/ │ ├── styles.css # Custom CSS styles (optional) │ ├── script.js # Custom JavaScript (optional) ├── app.py # Main Flask app ├── requirements.txt # Python dependencies ├── README.md # Project documentation
+├── templates/ │ 
+    ├── base.html # Base template │ 
+    ├── register.html # User registration page │
+    ├── login.html # User login page │ 
+    ├── dashboard.html # User dashboard with payment history 
+├── static/ │ 
+├── styles.css # Custom CSS styles (optional) │ 
+├── script.js # Custom JavaScript (optional) 
+
+├── app.py # Main Flask app ├
+── requirements.txt # Python dependencies ├
+── README.md # Project documentation
 ---
 
 ## Key Endpoints
