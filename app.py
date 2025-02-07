@@ -18,7 +18,7 @@ db_config = {
 }
 
 # Stripe Configuration
-stripe.api_key = 'sk_test_51QlohYJfvPkj146a1jbdEzlGhkeotkzlYH4IDgSevIucqYRFZycryre8yYEoPMJB8iM7eRcJbMXlqb8lMTyvhuN200RTsJf98C'
+stripe.api_key = ''
 
 # Database connection helper
 def get_db_connection():
