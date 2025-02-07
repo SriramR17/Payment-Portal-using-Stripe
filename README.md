@@ -67,10 +67,6 @@ This is a web application that provides a seamless payment integration using Str
     http://127.0.0.1:5000/
     ```
 
-├── templates/
-│ ├── base.html # Base template with common layout elements │ ├── register.html # User registration page │ ├── login.html # User login page │ ├── dashboard.html # User dashboard showing payment history │
-├── static/
-│ ├── styles.css # Custom CSS styles (optional) │ ├── script.js # Custom JavaScript (optional) │ ├── app.py # Main Flask app that runs the application ├── requirements.txt # Python dependencies ├── README.md # Project documentation (this file)
 
 ## Key Endpoints
 
