@@ -37,7 +37,7 @@ Jinja2==3.1.4
 kiwisolver
 MarkupSafe==3.0.2
 matplotlib==3.9.2
-mkl-service==2.4.0
+mkl-service==2.4.1
 mkl_fft 
 mkl_random 
 mysql-connector-python==9.1.0
