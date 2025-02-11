@@ -62,7 +62,7 @@ pyparsing
 PyQt5==5.15.10
 PyQt5-sip 
 PySocks==1.7.1
-python-dateutil k
+python-dateutil
 python-dotenv==1.0.1
 pytz 
 PyYAML==6.0.2
