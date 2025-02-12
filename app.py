@@ -18,7 +18,7 @@ db_config = {
 }
 
 # Stripe Configuration
-stripe.api_key = ''
+stripe.api_key = 'sk_test_51QlohYJfvPkj146a1jbdEzlGhkeotkzlYH4IDgSevIucqYRFZycryre8yYEoPMJB8iM7eRcJbMXlqb8lMTyvhuN200RTsJf98C'
 
 # Database connection helper
 def get_db_connection():
@@ -41,9 +41,22 @@ def init_db():
                 id INT AUTO_INCREMENT PRIMARY KEY,
                 email VARCHAR(120) UNIQUE NOT NULL,
                 password VARCHAR(255) NOT NULL,
+                stripe_customer_id VARCHAR(255) UNIQUE,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
         ''')
+        
+        # Check if stripe_customer_id column exists
+        try:
+            cursor.execute('''
+                ALTER TABLE users 
+                ADD COLUMN stripe_customer_id VARCHAR(255) UNIQUE
+            ''')
+            conn.commit()
+        except mysql.connector.Error as err:
+            # Error 1060 means column already exists, which is fine
+            if err.errno != 1060:
+                print(f"Error adding stripe_customer_id column: {err}")
         
         # Payments table
         cursor.execute('''
@@ -278,6 +291,48 @@ def upi_payment():
         return redirect(url_for('login'))
     return render_template('upi.html')
 
+
+
+@app.route('/create-setup-intent', methods=['POST'])
+def create_setup_intent():
+    if 'user_id' not in session:
+        return jsonify({'error': 'Not authenticated'}), 401
+        
+    try:
+        # Get or create customer
+        conn = get_db_connection()
+        if conn:
+            cursor = conn.cursor(dictionary=True)
+            cursor.execute('SELECT stripe_customer_id FROM users WHERE id = %s', (session['user_id'],))
+            user = cursor.fetchone()
+            
+            if not user or not user.get('stripe_customer_id'):
+                # Create new Stripe customer
+                customer = stripe.Customer.create()
+                cursor.execute(
+                    'UPDATE users SET stripe_customer_id = %s WHERE id = %s',
+                    (customer.id, session['user_id'])
+                )
+                conn.commit()
+                customer_id = customer.id
+            else:
+                customer_id = user['stripe_customer_id']
+                
+            cursor.close()
+            conn.close()
+            
+            # Create SetupIntent
+            setup_intent = stripe.SetupIntent.create(
+                customer=customer_id,
+                payment_method_types=['card'],
+            )
+            
+            return jsonify({
+                'clientSecret': setup_intent.client_secret
+            })
+    except Exception as e:
+        return jsonify({'error': str(e)}), 400
+
 @app.route('/save-card', methods=['POST'])
 def save_card():
     if 'user_id' not in session:
@@ -285,6 +340,7 @@ def save_card():
         
     data = request.json
     payment_method_id = data.get('paymentMethodId')
+    card_holder_name = data.get('cardHolderName')
     
     try:
         # Get user's stripe customer ID from database
@@ -303,6 +359,12 @@ def save_card():
             payment_method = stripe.PaymentMethod.attach(
                 payment_method_id,
                 customer=user['stripe_customer_id'],
+            )
+            
+            # Update the payment method with the cardholder name
+            stripe.PaymentMethod.modify(
+                payment_method_id,
+                billing_details={"name": card_holder_name}
             )
             
             return jsonify({'success': True})
@@ -336,7 +398,8 @@ def get_saved_cards():
                 'last4': pm.card.last4,
                 'expMonth': pm.card.exp_month,
                 'expYear': pm.card.exp_year,
-                'brand': pm.card.brand
+                'brand': pm.card.brand,
+                'cardHolderName': pm.billing_details.name
             } for pm in payment_methods.data]
             
             return jsonify(cards)
