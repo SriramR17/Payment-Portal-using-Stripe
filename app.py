@@ -5,6 +5,7 @@ from datetime import datetime
 import os
 import hashlib
 import secrets
+import re
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = secrets.token_hex(16)
@@ -34,6 +35,33 @@ def init_db():
     conn = get_db_connection()
     if conn:
         cursor = conn.cursor()
+
+
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS upi_ids (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                user_id INT NOT NULL,
+                upi_id VARCHAR(255) NOT NULL,
+                verified BOOLEAN DEFAULT TRUE,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (user_id) REFERENCES users(id),
+                UNIQUE KEY unique_user_upi (user_id, upi_id)
+            )
+        ''')
+        
+        # UPI Payments table
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS upi_payments (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                user_id INT NOT NULL,
+                upi_id VARCHAR(255) NOT NULL,
+                amount DECIMAL(10, 2) NOT NULL,
+                description TEXT,
+                status VARCHAR(20) DEFAULT 'pending',
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (user_id) REFERENCES users(id)
+            )
+        ''')
         
         # Users table
         cursor.execute('''
@@ -452,13 +480,214 @@ def add_upi():
         return jsonify({'error': 'Not authenticated'}), 401
         
     data = request.json
+    upi_id = data.get('upiId')
+    
     try:
-        upi_id = data.get('upiId')
-        # Here you would typically verify the UPI ID with your payment processor
-        # For now, we'll just return success
+        conn = get_db_connection()
+        if not conn:
+            return jsonify({'error': 'Database connection error'}), 500
+            
+        cursor = conn.cursor()
+        
+        # Create upi_ids table if it doesn't exist
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS upi_ids (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                user_id INT NOT NULL,
+                upi_id VARCHAR(255) NOT NULL,
+                verified BOOLEAN DEFAULT TRUE,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (user_id) REFERENCES users(id),
+                UNIQUE KEY unique_user_upi (user_id, upi_id)
+            )
+        ''')
+        
+        # Insert the new UPI ID
+        cursor.execute('''
+            INSERT INTO upi_ids (user_id, upi_id)
+            VALUES (%s, %s)
+        ''', (session['user_id'], upi_id))
+        
+        conn.commit()
         return jsonify({'success': True})
+        
     except Exception as e:
-        return jsonify({'error': str(e)}), 400
+        return jsonify({'error': str(e)}), 500
+    finally:
+        if 'cursor' in locals():
+            cursor.close()
+        if 'conn' in locals():
+            conn.close()
+    
+@app.route('/verify-upi', methods=['POST'])
+def verify_upi():
+    if 'user_id' not in session:
+        return jsonify({'error': 'Not authenticated'}), 401
+        
+    data = request.json
+    upi_id = data.get('upiId')
+    
+    # Validate UPI ID format
+    upi_pattern = r'^[a-zA-Z0-9\.\-\_]{2,256}@[a-zA-Z][a-zA-Z]{2,64}$'
+    if not re.match(upi_pattern, upi_id):
+        return jsonify({'error': 'Invalid UPI ID format'}), 400
+    
+    try:
+        conn = get_db_connection()
+        if not conn:
+            return jsonify({'error': 'Database connection error'}), 500
+            
+        cursor = conn.cursor(dictionary=True)
+        
+        # Check if UPI ID already exists for this user
+        cursor.execute('''
+            SELECT id FROM upi_ids 
+            WHERE user_id = %s AND upi_id = %s
+        ''', (session['user_id'], upi_id))
+        
+        if cursor.fetchone():
+            return jsonify({'error': 'UPI ID already exists'}), 400
+        
+        # In a real application, you would verify the UPI ID with your payment processor here
+        # For demo purposes, we'll assume verification is successful
+        verified = True
+        
+        if verified:
+            return jsonify({'verified': True})
+        else:
+            return jsonify({'error': 'UPI verification failed'}), 400
+            
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+    finally:
+        if 'cursor' in locals():
+            cursor.close()
+        if 'conn' in locals():
+            conn.close()
+
+@app.route('/get-saved-upis')
+def get_saved_upis():
+    if 'user_id' not in session:
+        return jsonify({'error': 'Not authenticated'}), 401
+        
+    try:
+        conn = get_db_connection()
+        if not conn:
+            return jsonify({'error': 'Database connection error'}), 500
+            
+        cursor = conn.cursor(dictionary=True)
+        
+        cursor.execute('''
+            SELECT id, upi_id, verified, created_at 
+            FROM upi_ids 
+            WHERE user_id = %s 
+            ORDER BY created_at DESC
+        ''', (session['user_id'],))
+        
+        upi_ids = cursor.fetchall()
+        
+        # Convert datetime objects to strings for JSON serialization
+        for upi in upi_ids:
+            upi['created_at'] = upi['created_at'].strftime('%Y-%m-%d %H:%M:%S')
+        
+        return jsonify(upi_ids)
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+    finally:
+        if 'cursor' in locals():
+            cursor.close()
+        if 'conn' in locals():
+            conn.close()
+
+@app.route('/remove-upi/<int:upi_id>', methods=['DELETE'])
+def remove_upi(upi_id):
+    if 'user_id' not in session:
+        return jsonify({'error': 'Not authenticated'}), 401
+        
+    try:
+        conn = get_db_connection()
+        if not conn:
+            return jsonify({'error': 'Database connection error'}), 500
+            
+        cursor = conn.cursor()
+        
+        # Delete UPI ID (only if it belongs to the current user)
+        cursor.execute('''
+            DELETE FROM upi_ids 
+            WHERE id = %s AND user_id = %s
+        ''', (upi_id, session['user_id']))
+        
+        conn.commit()
+        return jsonify({'success': True})
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+    finally:
+        if 'cursor' in locals():
+            cursor.close()
+        if 'conn' in locals():
+            conn.close()
+
+@app.route('/initiate-upi-payment', methods=['POST'])
+def initiate_upi_payment():
+    if 'user_id' not in session:
+        return jsonify({'error': 'Not authenticated'}), 401
+        
+    data = request.json
+    upi_id = data.get('upiId')
+    amount = data.get('amount')
+    description = data.get('description')
+    
+    try:
+        conn = get_db_connection()
+        if not conn:
+            return jsonify({'error': 'Database connection error'}), 500
+            
+        cursor = conn.cursor(dictionary=True)
+        
+        # Verify UPI ID belongs to user
+        cursor.execute('''
+            SELECT id FROM upi_ids 
+            WHERE user_id = %s AND upi_id = %s AND verified = TRUE
+        ''', (session['user_id'], upi_id))
+        
+        if not cursor.fetchone():
+            return jsonify({'error': 'Invalid or unverified UPI ID'}), 400
+        
+        # In a real application, you would integrate with a UPI payment processor here
+        # For demo purposes, we'll just record the payment attempt
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS upi_payments (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                user_id INT NOT NULL,
+                upi_id VARCHAR(255) NOT NULL,
+                amount DECIMAL(10, 2) NOT NULL,
+                description TEXT,
+                status VARCHAR(20) DEFAULT 'pending',
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (user_id) REFERENCES users(id)
+            )
+        ''')
+        
+        cursor.execute('''
+            INSERT INTO upi_payments (user_id, upi_id, amount, description)
+            VALUES (%s, %s, %s, %s)
+        ''', (session['user_id'], upi_id, amount, description))
+        
+        conn.commit()
+        return jsonify({
+            'success': True,
+            'message': 'Payment initiated successfully'
+        })
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+    finally:
+        if 'cursor' in locals():
+            cursor.close()
+        if 'conn' in locals():
+            conn.close()
 
 @app.route('/get-payment-methods')
 def get_payment_methods():

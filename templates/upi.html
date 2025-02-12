@@ -158,13 +158,19 @@
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                             </svg>
                             <div>
-                                <p class="font-medium">${upi.id}</p>
-                                <p class="text-sm text-gray-500">Verified</p>
+                                <p class="font-medium">${upi.upi_id}</p>
+                                <p class="text-sm text-gray-500">Added on ${new Date(upi.created_at).toLocaleDateString()}</p>
                             </div>
                         </div>
                         <div class="flex space-x-2">
-                            <button onclick="openPaymentModal('${upi.id}')" class="text-blue-600 hover:text-blue-700">Pay</button>
-                            <button onclick="removeUpiId('${upi.id}')" class="text-red-600 hover:text-red-700">Remove</button>
+                            <button onclick="openPaymentModal('${upi.upi_id}')" 
+                                    class="text-white bg-blue-600 hover:bg-blue-700 px-3 py-1 rounded">
+                                Pay
+                            </button>
+                            <button onclick="removeUpiId(${upi.id})" 
+                                    class="text-white bg-red-600 hover:bg-red-700 px-3 py-1 rounded">
+                                Remove
+                            </button>
                         </div>
                     </div>
                 `).join('');
@@ -175,6 +181,10 @@
 
         // Remove UPI ID
         async function removeUpiId(upiId) {
+            if (!confirm('Are you sure you want to remove this UPI ID?')) {
+                return;
+            }
+
             try {
                 const response = await fetch(`/remove-upi/${upiId}`, {
                     method: 'DELETE'
@@ -182,9 +192,13 @@
 
                 if (response.ok) {
                     loadSavedUpiIds();
+                } else {
+                    const data = await response.json();
+                    alert(data.error || 'Failed to remove UPI ID');
                 }
             } catch (error) {
                 console.error('Error removing UPI ID:', error);
+                alert('Error removing UPI ID');
             }
         }
 
@@ -194,6 +208,7 @@
         function openPaymentModal(upiId) {
             currentUpiId = upiId;
             document.getElementById('payment-modal').classList.remove('hidden');
+            document.getElementById('payment-form').reset();
         }
 
         function closePaymentModal() {
@@ -202,6 +217,7 @@
             document.getElementById('payment-form').reset();
         }
 
+        // Handle payment form submission
         document.getElementById('payment-form').addEventListener('submit', async function(event) {
             event.preventDefault();
             
@@ -224,15 +240,28 @@
                 const data = await response.json();
 
                 if (response.ok) {
-                    // Handle successful payment initiation
+                    alert('Payment initiated successfully! Please check your UPI app to complete the payment.');
                     closePaymentModal();
-                    alert('Payment initiated successfully! Check your UPI app to complete the payment.');
                 } else {
                     alert(data.error || 'Failed to initiate payment');
                 }
             } catch (error) {
                 console.error('Error:', error);
                 alert('Error initiating payment');
+            }
+        });
+
+        // Handle ESC key to close modal
+        document.addEventListener('keydown', function(event) {
+            if (event.key === 'Escape') {
+                closePaymentModal();
+            }
+        });
+
+        // Close modal when clicking outside
+        document.getElementById('payment-modal').addEventListener('click', function(event) {
+            if (event.target === this) {
+                closePaymentModal();
             }
         });
 
