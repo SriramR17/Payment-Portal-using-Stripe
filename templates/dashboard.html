@@ -60,7 +60,12 @@
                     <div class="transaction-info">
                         <div class="transaction-amount">${{ "%.2f"|format(payment.amount) }}</div>
                         <div class="transaction-date">{{ payment.created_at.strftime('%Y-%m-%d %H:%M') }}</div>
-                        <div class="transaction-description">{{ payment.description }}</div>
+                        <div class="transaction-description">
+                            {{ payment.description }}
+                            {% if payment.payment_method %}
+                                <span class="payment-method">({{ payment.payment_method }})</span>
+                            {% endif %}
+                        </div>
                     </div>
                     <div class="transaction-status status-{{ payment.status }}">
                         {{ payment.status|title }}
@@ -170,8 +175,11 @@ async function updatePaymentHistory() {
         <div class="transaction-item">
             <div class="transaction-info">
                 <div class="transaction-amount">$${payment.amount.toFixed(2)}</div>
-                <div class="transaction-date">${payment.date}</div>
-                <div class="transaction-description">${payment.description}</div>
+                <div class="transaction-date">${payment.created_at}</div>
+                <div class="transaction-description">
+                    ${payment.description}
+                    ${payment.payment_method ? `<span class="payment-method">(${payment.payment_method})</span>` : ''}
+                </div>
             </div>
             <div class="transaction-status status-${payment.status}">
                 ${payment.status}

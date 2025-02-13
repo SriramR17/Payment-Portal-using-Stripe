@@ -35,6 +35,16 @@ def init_db():
     conn = get_db_connection()
     if conn:
         cursor = conn.cursor()
+        try:
+            cursor.execute('''
+                ALTER TABLE payments 
+                ADD COLUMN payment_method VARCHAR(50) DEFAULT 'card'
+            ''')
+            conn.commit()
+        except mysql.connector.Error as err:
+            # Error 1060 means column already exists, which is fine
+            if err.errno != 1060:
+                print(f"Error adding payment_method column: {err}")
 
 
         cursor.execute('''
@@ -655,30 +665,34 @@ def initiate_upi_payment():
         if not cursor.fetchone():
             return jsonify({'error': 'Invalid or unverified UPI ID'}), 400
         
-        # In a real application, you would integrate with a UPI payment processor here
-        # For demo purposes, we'll just record the payment attempt
-        cursor.execute('''
-            CREATE TABLE IF NOT EXISTS upi_payments (
-                id INT AUTO_INCREMENT PRIMARY KEY,
-                user_id INT NOT NULL,
-                upi_id VARCHAR(255) NOT NULL,
-                amount DECIMAL(10, 2) NOT NULL,
-                description TEXT,
-                status VARCHAR(20) DEFAULT 'pending',
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                FOREIGN KEY (user_id) REFERENCES users(id)
-            )
-        ''')
+        # Generate a unique payment ID for UPI payments
+        payment_id = f"upi_{secrets.token_hex(16)}"
         
+        # Insert into the main payments table
         cursor.execute('''
-            INSERT INTO upi_payments (user_id, upi_id, amount, description)
-            VALUES (%s, %s, %s, %s)
-        ''', (session['user_id'], upi_id, amount, description))
+            INSERT INTO payments (
+                stripe_payment_id, 
+                user_id, 
+                amount, 
+                currency, 
+                status, 
+                description,
+                payment_method
+            ) VALUES (%s, %s, %s, %s, %s, %s, %s)
+        ''', (
+            payment_id,
+            session['user_id'],
+            amount,
+            'INR',  # Using INR for UPI payments
+            'completed',  # You might want to add proper status handling
+            description,
+            f'UPI ({upi_id})'
+        ))
         
         conn.commit()
         return jsonify({
             'success': True,
-            'message': 'Payment initiated successfully'
+            'message': 'Payment recorded successfully'
         })
         
     except Exception as e:
