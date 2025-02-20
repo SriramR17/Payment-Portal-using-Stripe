@@ -5,12 +5,13 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}Payment Portal{% endblock %}</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/tailwindcss/2.2.19/tailwind.min.css" rel="stylesheet">
     <script src="https://js.stripe.com/v3/"></script>
     
 </head>
 <body>
     <nav class="navbar">
-        <div class="nav-brand">Payment Portal</div>
+        <div class="nav-brand"> <a href="/">Payment Portal</a></div>
         <div class="nav-links">
             {% if 'user_id' in session %}
                 <a href="/">Home</a>
